@@ -1,9 +1,13 @@
+using System.Text.Json.Serialization;
+
 namespace InfiniTech.Application.DTOs.Auth;
 
 public class AuthResponseDto
 {
     public string AccessToken { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
+    [JsonIgnore]
+    public string RefreshToken { get; set; } = string.Empty;
     public UserTokenDto User { get; set; } = null!;
 }
 

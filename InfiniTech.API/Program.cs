@@ -1,4 +1,9 @@
 using System.Text;
+using InfiniTech.API.Middleware;
+using InfiniTech.API.Services;
+using InfiniTech.Application.Services.Implementations;
+using InfiniTech.Application.Services.Interfaces;
+using InfiniTech.Application.Settings;
 using InfiniTech.Core.Interfaces.Repositories;
 using InfiniTech.Infrastructure.Data;
 using InfiniTech.Infrastructure.Repositories;
@@ -9,13 +14,17 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Settings ──────────────────────────────────────────────────────────────────
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection("FileStorage"));
+
 // ── Database ──────────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ── JWT Authentication ────────────────────────────────────────────────────────
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"]!;
+var jwtSection = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSection["SecretKey"]!;
 
 builder.Services.AddAuthentication(options =>
 {
@@ -30,8 +39,8 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
+        ValidIssuer = jwtSection["Issuer"],
+        ValidAudience = jwtSection["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
         ClockSkew = TimeSpan.Zero
     };
@@ -40,11 +49,11 @@ builder.Services.AddAuthentication(options =>
 // ── Authorization Policies ────────────────────────────────────────────────────
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("ClientOnly", policy => policy.RequireRole("Client"));
-    options.AddPolicy("MasterOnly", policy => policy.RequireRole("Master"));
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-    options.AddPolicy("StaffOnly", policy => policy.RequireRole("Master", "Admin"));
-    options.AddPolicy("Authenticated", policy => policy.RequireAuthenticatedUser());
+    options.AddPolicy("ClientOnly",   p => p.RequireRole("Client"));
+    options.AddPolicy("MasterOnly",   p => p.RequireRole("Master"));
+    options.AddPolicy("AdminOnly",    p => p.RequireRole("Admin"));
+    options.AddPolicy("StaffOnly",    p => p.RequireRole("Master", "Admin"));
+    options.AddPolicy("Authenticated",p => p.RequireAuthenticatedUser());
 });
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
@@ -52,20 +61,16 @@ var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<stri
     ?? ["http://localhost:5173"];
 
 builder.Services.AddCors(options =>
-{
     options.AddPolicy("FrontendPolicy", policy =>
-    {
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
+              .AllowCredentials()));
 
 // ── AutoMapper ────────────────────────────────────────────────────────────────
 builder.Services.AddAutoMapper(typeof(InfiniTech.Application.Mappings.UserProfile).Assembly);
 
-// ── Repositories (DI) ─────────────────────────────────────────────────────────
+// ── Repositories ──────────────────────────────────────────────────────────────
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -73,10 +78,21 @@ builder.Services.AddScoped<IRepairTicketRepository, RepairTicketRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
+// ── Application Services ──────────────────────────────────────────────────────
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+
 // ── Controllers ───────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
 
-// ── Swagger / OpenAPI ─────────────────────────────────────────────────────────
+// ── Swagger ───────────────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -84,18 +100,16 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "InfiniTech API",
         Version = "v1",
-        Description = "E-commerce & Service Desk API for InfiniTech, Baku, Azerbaijan"
+        Description = "E-commerce & Service Desk API — Baku, Azerbaijan"
     });
-
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header. Enter: Bearer {token}",
+        Description = "JWT Authorization header. Format: Bearer {token}",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -108,14 +122,17 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// ── Static Files ──────────────────────────────────────────────────────────────
-var uploadPath = Path.Combine(builder.Environment.ContentRootPath,
-    builder.Configuration["FileStorage:UploadPath"] ?? "wwwroot/uploads");
-Directory.CreateDirectory(uploadPath);
+// ── Static Files / Upload Directory ──────────────────────────────────────────
+var webRootPath = builder.Environment.WebRootPath
+    ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "products"));
+Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "tickets"));
 
 var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
+app.UseMiddleware<ExceptionMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -8,7 +8,8 @@ public class ProductProfile : Profile
 {
     public ProductProfile()
     {
-        CreateMap<Category, CategoryDto>();
+        CreateMap<Category, CategoryDto>()
+            .ForMember(d => d.ProductCount, o => o.MapFrom(s => s.Products.Count));
 
         CreateMap<Product, ProductDto>()
             .ForMember(d => d.Condition, o => o.MapFrom(s => s.Condition.ToString()))

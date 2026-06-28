@@ -1,6 +1,7 @@
 using AutoMapper;
 using InfiniTech.Application.DTOs.Tickets;
 using InfiniTech.Core.Entities;
+using InfiniTech.Core.Enums;
 
 namespace InfiniTech.Application.Mappings;
 
@@ -28,7 +29,16 @@ public class TicketProfile : Profile
             .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
             .ForMember(d => d.CreatedAt, o => o.MapFrom(_ => DateTime.UtcNow))
             .ForMember(d => d.UpdatedAt, o => o.MapFrom(_ => DateTime.UtcNow))
+            .ForMember(d => d.Status, o => o.MapFrom(_ => TicketStatus.WaitingForMaster))
             .ForMember(d => d.Photos, o => o.Ignore())
-            .ForMember(d => d.Photos, o => o.Ignore());
+            .ForMember(d => d.Comments, o => o.Ignore())
+            .ForMember(d => d.Client, o => o.Ignore())
+            .ForMember(d => d.Master, o => o.Ignore())
+            .ForMember(d => d.MasterId, o => o.Ignore())
+            .ForMember(d => d.ClientId, o => o.Ignore())
+            .ForMember(d => d.DiagnosisResult, o => o.Ignore())
+            .ForMember(d => d.RepairCost, o => o.Ignore())
+            .ForMember(d => d.CompletedAt, o => o.Ignore())
+            .ForSourceMember(s => s.Photos, o => o.DoNotValidate());
     }
 }

@@ -9,9 +9,12 @@ public class UserRepository : GenericRepository<User>, IUserRepository
 {
     public UserRepository(AppDbContext context) : base(context) { }
 
+    // Ignores IsActive filter so deactivated users can still be found for login checks.
     public async Task<User?> FindByEmailAsync(string email) =>
-        await _dbSet.FirstOrDefaultAsync(u => u.Email == email);
+        await _context.Users.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Email == email);
 
     public async Task<bool> ExistsAsync(string email) =>
-        await _dbSet.AnyAsync(u => u.Email == email);
+        await _context.Users.IgnoreQueryFilters()
+            .AnyAsync(u => u.Email == email);
 }
