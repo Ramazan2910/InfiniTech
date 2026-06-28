@@ -77,13 +77,13 @@ public class AuthService : IAuthService
         if (user is null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
         {
             _logger.LogWarning("Failed login attempt for email: {Email}", dto.Email);
-            throw new BadRequestException("Invalid email or password.");
+            throw new UnauthorizedException("Неверный email или пароль");
         }
 
         if (!user.IsActive)
         {
             _logger.LogWarning("Login attempt for deactivated account: {Email}", dto.Email);
-            throw new BadRequestException("This account has been deactivated.");
+            throw new ForbiddenException("Аккаунт заблокирован");
         }
 
         _logger.LogInformation("User logged in: {Email} (Id={Id})", user.Email, user.Id);

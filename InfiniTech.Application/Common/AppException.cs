@@ -33,3 +33,8 @@ public class ForbiddenException : AppException
 {
     public ForbiddenException(string message = "Access denied") : base(403, message) { }
 }
+
+public class UnauthorizedException : AppException
+{
+    public UnauthorizedException(string message = "Неверный email или пароль") : base(401, message) { }
+}

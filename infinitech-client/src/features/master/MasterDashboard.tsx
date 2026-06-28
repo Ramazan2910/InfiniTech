@@ -21,7 +21,10 @@ export function MasterDashboard() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
-  const { data, isLoading, refetch } = useGetMasterTicketsQuery({ page, pageSize: 20, status: statusFilter || undefined });
+  const { data, isLoading, refetch } = useGetMasterTicketsQuery(
+    { page, pageSize: 20, status: statusFilter || undefined },
+    { pollingInterval: 30000 }
+  );
   const [assign] = useAssignTicketMutation();
 
   const handleAssign = async (id: string) => {

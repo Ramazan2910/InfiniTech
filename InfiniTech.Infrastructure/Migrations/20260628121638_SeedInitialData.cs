@@ -27,31 +27,24 @@ namespace InfiniTech.Infrastructure.Migrations
                 });
 
             // ── Users ─────────────────────────────────────────────────────────
-            // Passwords hashed with BCrypt work-factor 11:
-            //   Admin123!  → adminHash
-            //   Master123! → masterHash
-            //   Client123! → clientHash
-            var adminId    = "a1000000-0000-0000-0000-000000000001";
-            var master1Id  = "a2000000-0000-0000-0000-000000000002";
-            var master2Id  = "a3000000-0000-0000-0000-000000000003";
-            var client1Id  = "a4000000-0000-0000-0000-000000000004";
-            var client2Id  = "a5000000-0000-0000-0000-000000000005";
+            // BCrypt called at runtime so hashes are fresh and verifiable.
+            var adminId   = "a1000000-0000-0000-0000-000000000001";
+            var masterId  = "a2000000-0000-0000-0000-000000000002";
+            var clientId  = "a4000000-0000-0000-0000-000000000004";
 
-            var adminHash   = "$2a$11$/7H5DsbMweQDpKNEbVyIvO9C3MFDGJYt0FfhTixaZ4jkmlkXAxG6W";
-            var masterHash  = "$2a$11$sxfMpMXx9JG7IH9H7ySeouEx7iBIV18wSsUa1aoqS/SiC7aFElyGG";
-            var clientHash  = "$2a$11$2AKT515xDTwagSKoZnP1tei/mVgPm78qbUfnEL6Z5Iz8otvbFR0Lu";
-            var now         = "2026-06-28 12:00:00";
+            var adminHash  = BCrypt.Net.BCrypt.HashPassword("Admin123!");
+            var masterHash = BCrypt.Net.BCrypt.HashPassword("Master123!");
+            var clientHash = BCrypt.Net.BCrypt.HashPassword("Client123!");
+            var now        = "2026-06-28 12:00:00";
 
             migrationBuilder.InsertData(
                 table: "Users",
                 columns: new[] { "Id", "Email", "PasswordHash", "FirstName", "LastName", "Phone", "Role", "CreatedAt", "IsActive" },
                 values: new object[,]
                 {
-                    { adminId,   "admin@infinitech.az",  adminHash,  "Admin",  "InfiniTech", null,         2, now, true },
-                    { master1Id, "namig@infinitech.az",  masterHash, "Namig",  "Həsənov",    "+994501234567", 1, now, true },
-                    { master2Id, "rauf@infinitech.az",   masterHash, "Rauf",   "Əliyev",     "+994557654321", 1, now, true },
-                    { client1Id, "client1@test.az",      clientHash, "Aynur",  "Məmmədova",  "+994709876543", 0, now, true },
-                    { client2Id, "client2@test.az",      clientHash, "Tural",  "Quliyev",    "+994773456789", 0, now, true }
+                    { adminId,  "admin@test.az",   adminHash,  "Test", "Admin",  null, 2, now, true },
+                    { masterId, "master1@test.az", masterHash, "Test", "Master", null, 1, now, true },
+                    { clientId, "client1@test.az", clientHash, "Test", "Client", null, 0, now, true }
                 });
 
             // ── Products ──────────────────────────────────────────────────────
@@ -138,7 +131,6 @@ namespace InfiniTech.Infrastructure.Migrations
             // ── Repair Tickets ────────────────────────────────────────────────
             var t1 = "c1000000-0000-0000-0000-000000000001";
             var t2 = "c2000000-0000-0000-0000-000000000002";
-            var t3 = "c3000000-0000-0000-0000-000000000003";
 
             migrationBuilder.InsertData(
                 table: "RepairTickets",
@@ -147,37 +139,26 @@ namespace InfiniTech.Infrastructure.Migrations
                                  "RepairCost", "CreatedAt", "UpdatedAt", "CompletedAt" },
                 values: new object[,]
                 {
-                    // Ticket 1 — InRepair, assigned to Namig
+                    // Ticket 1 — InRepair, assigned to master
                     {
-                        t1, client1Id, master1Id,
+                        t1, clientId, masterId,
                         0, "Lenovo", "ThinkPad E14 Gen 4",
                         "Laptop won't turn on after water spill on keyboard",
                         "LNV-E14-SN-2024-001",
                         3,  // InRepair
-                        "Keyboard matrix shorted, motherboard south bridge damaged. Replacement parts ordered.",
+                        "Keyboard matrix shorted, motherboard south bridge damaged.",
                         250.00m,
                         "2026-06-20 09:00:00", "2026-06-25 14:30:00", null
                     },
-                    // Ticket 2 — Diagnosis (no master assigned yet)
+                    // Ticket 2 — WaitingForMaster (unassigned)
                     {
-                        t2, client2Id, null,
-                        1, "Samsung", "Galaxy S23",
-                        "Screen cracked, touch partially unresponsive in bottom third of display",
-                        "SMG-S23-SN-2024-002",
-                        1,  // Diagnosis
+                        t2, clientId, null,
+                        2, "Apple", "iPhone 14",
+                        "Screen cracked, touch unresponsive in bottom third",
+                        "APL-IP14-SN-2024-002",
+                        0,  // WaitingForMaster
                         null, null,
                         "2026-06-27 11:00:00", "2026-06-27 11:00:00", null
-                    },
-                    // Ticket 3 — ReadyForPickup, assigned to Rauf
-                    {
-                        t3, client1Id, master2Id,
-                        0, "HP", "Pavilion 15",
-                        "Laptop overheating and shutting down under load",
-                        "HP-PAV15-SN-2024-003",
-                        5,  // ReadyForPickup
-                        "Thermal paste dried out, heatsink fins clogged with dust. Deep cleaned and repasted.",
-                        80.00m,
-                        "2026-06-22 10:00:00", "2026-06-26 16:00:00", null
                     }
                 });
         }
@@ -188,8 +169,7 @@ namespace InfiniTech.Infrastructure.Migrations
             migrationBuilder.DeleteData("RepairTickets", "Id", new[]
             {
                 "c1000000-0000-0000-0000-000000000001",
-                "c2000000-0000-0000-0000-000000000002",
-                "c3000000-0000-0000-0000-000000000003"
+                "c2000000-0000-0000-0000-000000000002"
             });
 
             for (int i = 1; i <= 13; i++)
@@ -201,9 +181,7 @@ namespace InfiniTech.Infrastructure.Migrations
             {
                 "a1000000-0000-0000-0000-000000000001",
                 "a2000000-0000-0000-0000-000000000002",
-                "a3000000-0000-0000-0000-000000000003",
-                "a4000000-0000-0000-0000-000000000004",
-                "a5000000-0000-0000-0000-000000000005"
+                "a4000000-0000-0000-0000-000000000004"
             });
 
             migrationBuilder.DeleteData("Categories", "Id", new[] { 1, 2, 3, 4, 5, 6, 7, 8 });

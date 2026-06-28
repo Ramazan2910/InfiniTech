@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useGetTicketQuery } from '../../api/ticketsApi';
@@ -6,6 +7,8 @@ import { TicketStatusBadge } from '../../components/shared/StatusBadge';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { format } from '../utils/format';
 import type { TicketStatus } from '../../types';
+
+const TERMINAL_STATUSES: TicketStatus[] = ['Completed', 'Cancelled'];
 
 const statusMessages: Partial<Record<TicketStatus, (t: { masterName?: string; diagnosisResult?: string; repairCost?: number }) => string>> = {
   WaitingForMaster: () => 'Ваша заявка принята. Ожидаем назначения мастера.',
@@ -21,7 +24,16 @@ const statusMessages: Partial<Record<TicketStatus, (t: { masterName?: string; di
 export function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: ticket, isLoading } = useGetTicketQuery(id!);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [pollingInterval, setPollingInterval] = useState(30000);
+  const { data: ticket, isLoading } = useGetTicketQuery(id!, { pollingInterval });
+
+  useEffect(() => {
+    if (ticket) {
+      setLastUpdated(new Date());
+      if (TERMINAL_STATUSES.includes(ticket.status)) setPollingInterval(0);
+    }
+  }, [ticket?.status, ticket?.updatedAt]);
 
   if (isLoading) return <PageSpinner />;
   if (!ticket) return <div className="text-center py-20 text-muted">Заявка не найдена</div>;
@@ -45,6 +57,9 @@ export function TicketDetailPage() {
             <TicketStatusBadge status={ticket.status} />
           </div>
           <StatusTracker status={ticket.status} />
+          {lastUpdated && (
+            <p className="mt-3 text-xs text-muted">Обновлено: {lastUpdated.toLocaleTimeString('ru-RU')}</p>
+          )}
         </div>
 
         {/* Status message */}
