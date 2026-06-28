@@ -77,6 +77,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderNumber: string;
   clientId: string;
   status: OrderStatus;
   totalAmount: number;

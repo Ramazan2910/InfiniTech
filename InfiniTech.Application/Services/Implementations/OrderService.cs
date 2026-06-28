@@ -65,9 +65,12 @@ public class OrderService : IOrderService
             total += product.Price * ci.Quantity;
         }
 
+        var orderNumber = await GenerateOrderNumberAsync();
+
         var order = new Order
         {
             Id = Guid.NewGuid(),
+            OrderNumber = orderNumber,
             ClientId = userId,
             Status = OrderStatus.Pending,
             TotalAmount = total,
@@ -166,6 +169,14 @@ public class OrderService : IOrderService
             .Include(o => o.Client)
             .FirstAsync(o => o.Id == orderId);
         return _mapper.Map<OrderDto>(order);
+    }
+
+    private async Task<string> GenerateOrderNumberAsync()
+    {
+        var year = DateTime.UtcNow.Year;
+        var count = await _db.Orders.IgnoreQueryFilters()
+            .CountAsync(o => o.CreatedAt.Year == year);
+        return $"ORD-{year}-{(count + 1):D4}";
     }
 
     private async Task<PagedResult<OrderDto>> PaginateAsync(IQueryable<Order> query, int page, int pageSize)

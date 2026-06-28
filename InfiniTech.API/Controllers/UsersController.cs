@@ -44,6 +44,19 @@ public class UsersController : ControllerBase
         return user is null ? NotFound(new { error = "User not found.", statusCode = 404 }) : Ok(user);
     }
 
+    [HttpPost("api/admin/users")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> CreateUser([FromBody] AdminCreateUserDto dto)
+        => Ok(await _users.AdminCreateUserAsync(dto));
+
+    [HttpDelete("api/admin/users/{id:guid}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        await _users.AdminDeleteUserAsync(User.GetUserId(), id);
+        return Ok(new { message = "Пользователь удалён." });
+    }
+
     [HttpPut("api/admin/users/{id:guid}/status")]
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] ChangeUserStatusDto dto)
@@ -58,5 +71,21 @@ public class UsersController : ControllerBase
     {
         await _users.UpdateUserRoleAsync(User.GetUserId(), id, dto.Role);
         return Ok(new { message = $"User role updated to {dto.Role}." });
+    }
+
+    [HttpPut("api/admin/users/{id:guid}/password")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> ChangePassword(Guid id, [FromBody] ChangePasswordDto dto)
+    {
+        await _users.AdminChangePasswordAsync(id, dto.NewPassword);
+        return Ok(new { message = "Пароль изменён." });
+    }
+
+    [HttpPost("api/admin/users/{id:guid}/reset-password")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> ResetPassword(Guid id)
+    {
+        var tempPass = await _users.AdminResetPasswordAsync(id);
+        return Ok(new { message = "Пароль сброшен.", temporaryPassword = tempPass });
     }
 }

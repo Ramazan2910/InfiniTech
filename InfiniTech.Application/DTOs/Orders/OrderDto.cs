@@ -3,6 +3,7 @@ namespace InfiniTech.Application.DTOs.Orders;
 public class OrderDto
 {
     public Guid Id { get; set; }
+    public string OrderNumber { get; set; } = string.Empty;
     public Guid ClientId { get; set; }
     public string ClientName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;

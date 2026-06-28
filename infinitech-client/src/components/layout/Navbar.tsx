@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, ChevronDown, LogOut, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, ChevronDown, LogOut, LayoutDashboard, Settings, Globe } from 'lucide-react';
 import { Logo } from './Logo';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { clearCredentials } from '../../features/auth/authSlice';
 import { useLogoutMutation } from '../../api/authApi';
 import { useGetCartQuery } from '../../api/cartApi';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n/i18n';
 
-const navLinks = [
-  { label: 'Главная',  href: '/' },
-  { label: 'Каталог',  href: '/shop' },
-  { label: 'Сервис',   href: '/client/repairs' },
-  { label: 'О нас',    href: '/#about' },
+const LANGUAGES = [
+  { code: 'ru', label: 'RU' },
+  { code: 'az', label: 'AZ' },
+  { code: 'en', label: 'EN' },
 ];
 
 function dashboardFor(role?: string) {
@@ -20,11 +21,20 @@ function dashboardFor(role?: string) {
   return '/client/dashboard';
 }
 
+function settingsFor(role?: string) {
+  if (role === 'Admin')  return '/admin/settings';
+  if (role === 'Master') return '/master/settings';
+  return '/client/settings';
+}
+
 export function Navbar() {
+  const { t } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +43,12 @@ export function Navbar() {
   const { data: cart } = useGetCartQuery(undefined, { skip: !isAuthenticated || user?.role !== 'Client' });
 
   const isLanding = location.pathname === '/';
+  const currentLang = i18n.language;
+
+  const navLinks = [
+    { label: t('nav.catalog'), href: '/shop' },
+    { label: t('nav.about'),   href: '/#footer' },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -43,15 +59,30 @@ export function Navbar() {
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
     };
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
+  // Handle hash navigation for smooth scroll
+  useEffect(() => {
+    if (location.hash === '#footer') {
+      const el = document.getElementById('footer');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [location.hash]);
+
   const handleLogout = async () => {
     try { await logout().unwrap(); } catch {}
     dispatch(clearCredentials());
     navigate('/');
+  };
+
+  const handleLangChange = (lang: string) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem('lang', lang);
+    setLangOpen(false);
   };
 
   const navbarBg = isLanding && !scrolled
@@ -78,6 +109,26 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-2">
+            {/* Language switcher */}
+            <div ref={langRef} className="relative">
+              <button onClick={() => setLangOpen(!langOpen)}
+                className={`flex items-center gap-1 rounded-btn px-2 py-2 text-xs font-medium transition ${linkColor}`}>
+                <Globe size={14} />
+                <span>{currentLang.toUpperCase()}</span>
+              </button>
+              {langOpen && (
+                <div className="absolute right-0 mt-2 w-24 rounded-card bg-surface shadow-card-lg border border-border py-1">
+                  {LANGUAGES.map((l) => (
+                    <button key={l.code} onClick={() => handleLangChange(l.code)}
+                      className={`w-full px-4 py-2 text-left text-sm transition hover:bg-bg
+                        ${currentLang === l.code ? 'font-bold text-navy' : 'text-text'}`}>
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Cart */}
             {isAuthenticated && user?.role === 'Client' && (
               <button onClick={() => navigate('/client/cart')}
@@ -101,15 +152,19 @@ export function Navbar() {
                   <ChevronDown size={14} className={`transition-transform ${dropOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {dropOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-card bg-surface shadow-card-lg border border-border py-1">
+                  <div className="absolute right-0 mt-2 w-52 rounded-card bg-surface shadow-card-lg border border-border py-1">
                     <button onClick={() => { navigate(dashboardFor(user?.role)); setDropOpen(false); }}
                       className="flex w-full items-center gap-2 px-4 py-2 text-sm text-text hover:bg-bg">
-                      <LayoutDashboard size={14} /> Личный кабинет
+                      <LayoutDashboard size={14} /> {t('nav.profile')}
+                    </button>
+                    <button onClick={() => { navigate(settingsFor(user?.role)); setDropOpen(false); }}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-text hover:bg-bg">
+                      <Settings size={14} /> {t('nav.settings')}
                     </button>
                     <hr className="my-1 border-border" />
                     <button onClick={handleLogout}
                       className="flex w-full items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-red-50">
-                      <LogOut size={14} /> Выйти
+                      <LogOut size={14} /> {t('nav.logout')}
                     </button>
                   </div>
                 )}
@@ -120,7 +175,7 @@ export function Navbar() {
                   ${isLanding && !scrolled
                     ? 'border-white/30 text-white hover:bg-white/10'
                     : 'border-navy text-navy hover:bg-navy hover:text-white'}`}>
-                Войти
+                {t('nav.login')}
               </button>
             )}
 
@@ -144,6 +199,16 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
+            <hr className="my-2 border-border" />
+            <div className="flex gap-2">
+              {LANGUAGES.map((l) => (
+                <button key={l.code} onClick={() => { handleLangChange(l.code); setMenuOpen(false); }}
+                  className={`rounded-btn px-3 py-1.5 text-xs font-medium border transition
+                    ${currentLang === l.code ? 'bg-navy text-white border-navy' : 'border-border text-muted'}`}>
+                  {l.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

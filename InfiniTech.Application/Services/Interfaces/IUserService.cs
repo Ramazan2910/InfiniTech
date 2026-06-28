@@ -13,4 +13,8 @@ public interface IUserService
     Task UpdateUserRoleAsync(Guid requesterId, Guid targetUserId, UserRole role);
     Task<UserDto?> GetProfileAsync(Guid userId);
     Task<UserDto> UpdateProfileAsync(Guid userId, UpdateUserDto dto);
+    Task<UserDto> AdminCreateUserAsync(AdminCreateUserDto dto);
+    Task AdminDeleteUserAsync(Guid requesterId, Guid targetUserId);
+    Task AdminChangePasswordAsync(Guid targetUserId, string newPassword);
+    Task<string> AdminResetPasswordAsync(Guid targetUserId);
 }

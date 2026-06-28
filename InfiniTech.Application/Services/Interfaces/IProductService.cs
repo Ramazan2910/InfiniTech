@@ -12,4 +12,5 @@ public interface IProductService
     Task<ProductDto> UpdateProductAsync(Guid id, UpdateProductDto dto);
     Task DeleteProductAsync(Guid id);
     Task<IEnumerable<CategoryDto>> GetCategoriesAsync();
+    Task<IEnumerable<ProductDto>> GetSimilarProductsAsync(Guid productId, int limit = 4);
 }

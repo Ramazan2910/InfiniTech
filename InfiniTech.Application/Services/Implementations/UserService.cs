@@ -1,8 +1,10 @@
 using AutoMapper;
+using BCrypt.Net;
 using InfiniTech.Application.Common;
 using InfiniTech.Application.DTOs.Query;
 using InfiniTech.Application.DTOs.Users;
 using InfiniTech.Application.Services.Interfaces;
+using InfiniTech.Core.Entities;
 using InfiniTech.Core.Enums;
 using InfiniTech.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +15,13 @@ public class UserService : IUserService
 {
     private readonly AppDbContext _db;
     private readonly IMapper _mapper;
+    private readonly IEmailService _email;
 
-    public UserService(AppDbContext db, IMapper mapper)
+    public UserService(AppDbContext db, IMapper mapper, IEmailService email)
     {
         _db = db;
         _mapper = mapper;
+        _email = email;
     }
 
     public async Task<PagedResult<UserDto>> GetAllUsersAsync(UserQueryParams q)
@@ -116,5 +120,85 @@ public class UserService : IUserService
         _db.Users.Update(user);
         await _db.SaveChangesAsync();
         return _mapper.Map<UserDto>(user);
+    }
+
+    public async Task<UserDto> AdminCreateUserAsync(AdminCreateUserDto dto)
+    {
+        var email = dto.Email.Trim().ToLowerInvariant();
+        if (await _db.Users.IgnoreQueryFilters().AnyAsync(u => u.Email == email))
+            throw new ConflictException($"Email '{email}' уже зарегистрирован.");
+
+        if (dto.Password.Length < 8 || !dto.Password.Any(char.IsUpper) || !dto.Password.Any(char.IsDigit))
+            throw new BadRequestException("Пароль должен быть не менее 8 символов, содержать заглавную букву и цифру.");
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            FirstName = dto.FirstName.Trim(),
+            LastName = dto.LastName.Trim(),
+            Phone = dto.Phone?.Trim(),
+            Role = dto.Role,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        };
+
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+        return _mapper.Map<UserDto>(user);
+    }
+
+    public async Task AdminDeleteUserAsync(Guid requesterId, Guid targetUserId)
+    {
+        if (requesterId == targetUserId)
+            throw new BadRequestException("Нельзя удалить собственный аккаунт.");
+
+        var user = await _db.Users.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Id == targetUserId)
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
+
+        // Soft delete + anonymize
+        user.IsActive = false;
+        user.Email = $"deleted_{targetUserId}@deleted.com";
+        user.FirstName = "Deleted";
+        user.LastName = "User";
+        user.Phone = null;
+        _db.Users.Update(user);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task AdminChangePasswordAsync(Guid targetUserId, string newPassword)
+    {
+        var user = await _db.Users.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Id == targetUserId)
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
+
+        if (newPassword.Length < 8 || !newPassword.Any(char.IsUpper) || !newPassword.Any(char.IsDigit))
+            throw new BadRequestException("Пароль должен быть не менее 8 символов, содержать заглавную букву и цифру.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        _db.Users.Update(user);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task<string> AdminResetPasswordAsync(Guid targetUserId)
+    {
+        var user = await _db.Users.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Id == targetUserId)
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
+
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
+        var rng = new Random();
+        var tempPass = new string(Enumerable.Repeat(chars, 10).Select(s => s[rng.Next(s.Length)]).ToArray());
+        // Ensure at least one uppercase, one digit, one special
+        tempPass = char.ToUpper(tempPass[0]) + tempPass[1..7] + "1!" + tempPass[7..];
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPass);
+        _db.Users.Update(user);
+        await _db.SaveChangesAsync();
+
+        await _email.SendTempPasswordEmailAsync(user.Email, user.FirstName, tempPass);
+        return tempPass;
     }
 }

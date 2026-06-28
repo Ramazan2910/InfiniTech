@@ -23,6 +23,20 @@ export const adminApi = baseApi.injectEndpoints({
       query: ({ id, role }) => ({ url: `/admin/users/${id}/role`, method: 'PUT', body: { role } }),
       invalidatesTags: ['Users'],
     }),
+    createAdminUser: build.mutation<User, { email: string; password: string; firstName: string; lastName: string; phone?: string; role: UserRole }>({
+      query: (body) => ({ url: '/admin/users', method: 'POST', body }),
+      invalidatesTags: ['Users'],
+    }),
+    deleteAdminUser: build.mutation<void, string>({
+      query: (id) => ({ url: `/admin/users/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Users'],
+    }),
+    adminChangePassword: build.mutation<void, { id: string; newPassword: string }>({
+      query: ({ id, newPassword }) => ({ url: `/admin/users/${id}/password`, method: 'PUT', body: { newPassword } }),
+    }),
+    adminResetPassword: build.mutation<{ temporaryPassword: string }, string>({
+      query: (id) => ({ url: `/admin/users/${id}/reset-password`, method: 'POST' }),
+    }),
   }),
 });
 
@@ -32,4 +46,8 @@ export const {
   useGetUserDetailQuery,
   useChangeUserStatusMutation,
   useChangeUserRoleMutation,
+  useCreateAdminUserMutation,
+  useDeleteAdminUserMutation,
+  useAdminChangePasswordMutation,
+  useAdminResetPasswordMutation,
 } = adminApi;

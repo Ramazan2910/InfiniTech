@@ -60,12 +60,14 @@ export function LoginPage() {
               {...register('password')} error={errors.password?.message} />
             <Button type="submit" loading={isLoading} className="w-full mt-2">Войти</Button>
           </form>
-          <p className="mt-5 text-center text-sm text-muted">
-            Нет аккаунта?{' '}
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <Link to="/auth/forgot-password" className="text-muted hover:text-navy">
+              Забыли пароль?
+            </Link>
             <Link to="/auth/register" className="font-medium text-blue hover:text-blue-light">
               Зарегистрироваться
             </Link>
-          </p>
+          </div>
         </div>
         {/* Demo accounts */}
         <div className="mt-4 rounded-card border border-border bg-surface/50 p-4 text-xs text-muted">

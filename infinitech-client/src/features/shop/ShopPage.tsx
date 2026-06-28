@@ -88,7 +88,7 @@ export function ShopPage() {
                   <button key={c.id} onClick={() => set('categoryId', String(c.id))}
                     className={`w-full rounded-btn px-3 py-1.5 text-left text-sm transition
                       ${params.categoryId === c.id ? 'bg-blue text-white' : 'text-text hover:bg-bg'}`}>
-                    {c.iconEmoji} {c.name}
+                    {c.name}
                   </button>
                 ))}
               </div>

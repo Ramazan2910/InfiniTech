@@ -45,6 +45,10 @@ public class ProductsController : ControllerBase
         await _products.DeleteProductAsync(id);
         return NoContent();
     }
+
+    [HttpGet("{id:guid}/similar")]
+    public async Task<IActionResult> GetSimilar(Guid id)
+        => Ok(await _products.GetSimilarProductsAsync(id));
 }
 
 [ApiController]

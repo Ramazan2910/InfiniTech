@@ -19,7 +19,20 @@ export const authApi = baseApi.injectEndpoints({
     refresh: build.mutation<AuthResponse, void>({
       query: () => ({ url: '/auth/refresh', method: 'POST' }),
     }),
+    forgotPassword: build.mutation<{ message: string }, { email: string }>({
+      query: (body) => ({ url: '/auth/forgot-password', method: 'POST', body }),
+    }),
+    resetPassword: build.mutation<{ message: string }, { token: string; newPassword: string }>({
+      query: (body) => ({ url: '/auth/reset-password', method: 'POST', body }),
+    }),
+    changePassword: build.mutation<{ message: string }, { currentPassword: string; newPassword: string }>({
+      query: (body) => ({ url: '/auth/change-password', method: 'POST', body }),
+    }),
   }),
 });
 
-export const { useLoginMutation, useRegisterMutation, useLogoutMutation, useGetMeQuery, useRefreshMutation } = authApi;
+export const {
+  useLoginMutation, useRegisterMutation, useLogoutMutation,
+  useGetMeQuery, useRefreshMutation,
+  useForgotPasswordMutation, useResetPasswordMutation, useChangePasswordMutation,
+} = authApi;

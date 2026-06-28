@@ -27,6 +27,10 @@ export const productsApi = baseApi.injectEndpoints({
       query: () => '/categories',
       providesTags: ['Categories'],
     }),
+    getSimilarProducts: build.query<Product[], string>({
+      query: (id) => `/products/${id}/similar`,
+      providesTags: (_r, _e, id) => [{ type: 'Products', id }],
+    }),
   }),
 });
 
@@ -37,4 +41,5 @@ export const {
   useUpdateProductMutation,
   useDeleteProductMutation,
   useGetCategoriesQuery,
+  useGetSimilarProductsQuery,
 } = productsApi;

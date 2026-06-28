@@ -1,5 +1,6 @@
 using InfiniTech.API.Extensions;
 using InfiniTech.Application.DTOs.Auth;
+using InfiniTech.Application.DTOs.Users;
 using InfiniTech.Application.Services.Interfaces;
 using InfiniTech.Application.Settings;
 using Microsoft.AspNetCore.Authorization;
@@ -70,13 +71,36 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+    {
+        var frontendBase = $"{Request.Scheme}://{Request.Host.Host}:{5173}";
+        await _auth.ForgotPasswordAsync(dto.Email, frontendBase);
+        return Ok(new { message = "Если email зарегистрирован, вы получите письмо со ссылкой для сброса пароля." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+    {
+        await _auth.ResetPasswordAsync(dto.Token, dto.NewPassword);
+        return Ok(new { message = "Пароль успешно изменён." });
+    }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangeOwnPasswordDto dto)
+    {
+        await _auth.ChangeOwnPasswordAsync(User.GetUserId(), dto.CurrentPassword, dto.NewPassword);
+        return Ok(new { message = "Пароль успешно изменён." });
+    }
+
     private void SetRefreshTokenCookie(string token)
     {
         Response.Cookies.Append("refreshToken", token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None,
+            Secure = false,
+            SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays)
         });
     }

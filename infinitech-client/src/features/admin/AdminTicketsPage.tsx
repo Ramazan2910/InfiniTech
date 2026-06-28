@@ -14,15 +14,36 @@ const LABELS: Record<TicketStatus, string> = {
   Completed: 'Завершён', Cancelled: 'Отменён',
 };
 
+const ACTIVE: TicketStatus[] = ['WaitingForMaster', 'Diagnosis', 'PriceApproval', 'InRepair', 'WaitingForParts', 'ReadyForPickup'];
+const HISTORY: TicketStatus[] = ['Completed', 'Cancelled'];
+
 export function AdminTicketsPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
+  const [tab, setTab] = useState<'active' | 'history'>('active');
   const [statusFilter, setStatusFilter] = useState('');
   const { data, isLoading } = useGetAdminTicketsQuery({ page, pageSize: 15, status: statusFilter || undefined });
 
+  const tabStatuses = tab === 'active' ? ACTIVE : HISTORY;
+  const filteredData = statusFilter
+    ? data
+    : { ...data, items: data?.items.filter((t) => tabStatuses.includes(t.status)) ?? [] };
+
   return (
     <div>
-      <h1 className="mb-6 font-display text-2xl font-bold text-text">Все заявки на ремонт</h1>
+      <h1 className="mb-4 font-display text-2xl font-bold text-text">Все заявки на ремонт</h1>
+
+      {/* Active / History tabs */}
+      <div className="mb-4 flex gap-1 rounded-card bg-bg p-1 w-fit border border-border">
+        {(['active', 'history'] as const).map((t2) => (
+          <button key={t2} onClick={() => { setTab(t2); setStatusFilter(''); setPage(1); }}
+            className={`rounded-btn px-4 py-1.5 text-sm font-medium transition
+              ${tab === t2 ? 'bg-surface shadow-card text-navy' : 'text-muted hover:text-text'}`}>
+            {t2 === 'active' ? 'Активные' : 'История'}
+          </button>
+        ))}
+      </div>
+
       <div className="mb-4 flex flex-wrap gap-2">
         <button onClick={() => setStatusFilter('')}
           className={`rounded-chip px-3 py-1 text-sm transition ${statusFilter === '' ? 'bg-navy text-white' : 'bg-surface border border-border text-muted'}`}>
@@ -47,7 +68,7 @@ export function AdminTicketsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {data?.items.map((t) => (
+              {filteredData?.items.map((t) => (
                 <tr key={t.id} className="hover:bg-bg transition">
                   <td className="px-4 py-3 font-medium text-text">{t.deviceBrand} {t.deviceModel}</td>
                   <td className="px-4 py-3 text-muted">{t.clientName}</td>
@@ -62,7 +83,7 @@ export function AdminTicketsPage() {
               ))}
             </tbody>
           </table>
-          {!data?.items.length && <div className="py-16 text-center text-muted">Заявок нет</div>}
+          {!filteredData?.items.length && <div className="py-16 text-center text-muted">Заявок нет</div>}
         </div>
       )}
       <div className="mt-6"><Pagination page={page} totalPages={data?.totalPages ?? 1} onChange={setPage} /></div>

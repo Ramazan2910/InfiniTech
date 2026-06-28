@@ -11,6 +11,8 @@ import { PageSpinner } from '../components/ui/Spinner';
 import { LandingPage } from '../features/landing/LandingPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
+import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
 import { ShopPage } from '../features/shop/ShopPage';
 import { ProductDetailPage } from '../features/shop/ProductDetailPage';
 import { ClientDashboard } from '../features/client/ClientDashboard';
@@ -29,6 +31,7 @@ import { ProductFormPage } from '../features/admin/ProductFormPage';
 import { AdminOrdersPage } from '../features/admin/AdminOrdersPage';
 import { AdminTicketsPage } from '../features/admin/AdminTicketsPage';
 import { AdminUsersPage } from '../features/admin/AdminUsersPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -63,8 +66,10 @@ export function AppRouter() {
         <Route path="/shop/:id" element={<PublicLayout><ProductDetailPage /></PublicLayout>} />
 
         {/* Auth (guest only) */}
-        <Route path="/auth/login"    element={<GuestRoute><LoginPage /></GuestRoute>} />
-        <Route path="/auth/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+        <Route path="/auth/login"           element={<GuestRoute><LoginPage /></GuestRoute>} />
+        <Route path="/auth/register"        element={<GuestRoute><RegisterPage /></GuestRoute>} />
+        <Route path="/auth/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
+        <Route path="/auth/reset-password"  element={<ResetPasswordPage />} />
 
         {/* Client routes */}
         <Route path="/client/*" element={
@@ -79,6 +84,7 @@ export function AppRouter() {
                 <Route path="repairs/:id"  element={<TicketDetailPage />} />
                 <Route path="cart"         element={<CartPage />} />
                 <Route path="checkout"     element={<CheckoutPage />} />
+                <Route path="settings"     element={<SettingsPage />} />
                 <Route index              element={<Navigate to="dashboard" replace />} />
               </Routes>
             </DashboardLayout>
@@ -93,6 +99,7 @@ export function AppRouter() {
                 <Route path="dashboard"   element={<MasterDashboard />} />
                 <Route path="tickets"     element={<MasterDashboard />} />
                 <Route path="tickets/:id" element={<MasterTicketDetail />} />
+                <Route path="settings"    element={<SettingsPage />} />
                 <Route index             element={<Navigate to="dashboard" replace />} />
               </Routes>
             </DashboardLayout>
@@ -113,6 +120,7 @@ export function AppRouter() {
                 <Route path="tickets"             element={<AdminTicketsPage />} />
                 <Route path="tickets/:id"         element={<MasterTicketDetail />} />
                 <Route path="users"               element={<AdminUsersPage />} />
+                <Route path="settings"            element={<SettingsPage />} />
                 <Route index                     element={<Navigate to="dashboard" replace />} />
               </Routes>
             </DashboardLayout>

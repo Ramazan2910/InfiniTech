@@ -19,4 +19,5 @@ public class User
     public ICollection<RepairTicket> AssignedTickets { get; set; } = new List<RepairTicket>();
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 }

@@ -1,19 +1,22 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { ArrowLeft, ShoppingCart, Package, Minus, Plus } from 'lucide-react';
-import { useGetProductQuery } from '../../api/productsApi';
+import { useGetProductQuery, useGetSimilarProductsQuery } from '../../api/productsApi';
 import { useAddToCartMutation } from '../../api/cartApi';
 import { useAppSelector } from '../../app/hooks';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { PageSpinner } from '../../components/ui/Spinner';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 export function ProductDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [qty, setQty] = useState(1);
   const { data: product, isLoading } = useGetProductQuery(id!);
+  const { data: similar } = useGetSimilarProductsQuery(id!, { skip: !id });
   const [addToCart, { isLoading: adding }] = useAddToCartMutation();
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
 
@@ -36,7 +39,7 @@ export function ProductDetailPage() {
       <div className="mx-auto max-w-5xl px-4 py-10">
         <button onClick={() => navigate(-1)}
           className="mb-6 flex items-center gap-2 text-sm text-muted hover:text-navy transition">
-          <ArrowLeft size={16} /> Назад
+          <ArrowLeft size={16} /> {t('common.back')}
         </button>
 
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
@@ -51,7 +54,7 @@ export function ProductDetailPage() {
           <div>
             <div className="mb-3 flex items-center gap-2">
               <Badge variant={product.condition === 'New' ? 'blue' : 'warning'}>
-                {product.condition === 'New' ? 'Новый' : 'Б/У'}
+                {product.condition === 'New' ? t('shop.new') : t('shop.used')}
               </Badge>
               <span className="text-sm text-muted">{product.categoryName}</span>
             </div>
@@ -68,7 +71,7 @@ export function ProductDetailPage() {
             <div className="mb-2 flex items-center gap-2">
               <Package size={16} className="text-muted" />
               <span className={`text-sm font-medium ${product.stockQuantity > 5 ? 'text-success' : product.stockQuantity > 0 ? 'text-warning' : 'text-danger'}`}>
-                {product.stockQuantity > 0 ? `В наличии: ${product.stockQuantity} шт.` : 'Нет в наличии'}
+                {product.stockQuantity > 0 ? `В наличии: ${product.stockQuantity} шт.` : t('shop.outOfStock')}
               </span>
             </div>
             <p className="mb-6 text-xs text-muted">SKU: {product.sku}</p>
@@ -85,10 +88,31 @@ export function ProductDetailPage() {
 
             <Button size="lg" loading={adding} disabled={product.stockQuantity === 0}
               leftIcon={<ShoppingCart size={18} />} onClick={handleAdd} className="w-full">
-              {product.stockQuantity === 0 ? 'Нет в наличии' : 'Добавить в корзину'}
+              {product.stockQuantity === 0 ? t('shop.outOfStock') : t('shop.addToCart')}
             </Button>
           </div>
         </div>
+
+        {/* Similar products */}
+        {similar && similar.length > 0 && (
+          <div className="mt-16">
+            <h2 className="mb-6 font-display text-xl font-bold text-text">{t('shop.similar')}</h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {similar.map((p) => (
+                <button key={p.id} onClick={() => navigate(`/shop/${p.id}`)}
+                  className="rounded-card bg-surface p-4 shadow-card hover:shadow-card-lg transition-shadow text-left">
+                  <div className="mb-3 flex h-32 items-center justify-center rounded-btn bg-bg text-4xl">
+                    {p.imagePath
+                      ? <img src={`/uploads/${p.imagePath}`} alt={p.name} className="h-full w-full object-contain" />
+                      : p.categoryEmoji || '📦'}
+                  </div>
+                  <p className="text-sm font-semibold text-text line-clamp-2">{p.name}</p>
+                  <p className="mt-1 font-bold text-navy">₼{p.price.toFixed(2)}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

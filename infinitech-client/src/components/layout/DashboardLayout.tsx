@@ -4,36 +4,39 @@ import { Logo } from './Logo';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { clearCredentials } from '../../features/auth/authSlice';
 import { useLogoutMutation } from '../../api/authApi';
-import { LogOut, Menu } from 'lucide-react';
+import { LogOut, Menu, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface NavItem { label: string; href: string; icon: string }
 
-const clientNav: NavItem[] = [
-  { label: 'Главная', href: '/client/dashboard', icon: '🏠' },
-  { label: 'Заказы',  href: '/client/orders',    icon: '📦' },
-  { label: 'Ремонт',  href: '/client/repairs',   icon: '🔧' },
-  { label: 'Корзина', href: '/client/cart',       icon: '🛒' },
-];
-const masterNav: NavItem[] = [
-  { label: 'Дашборд', href: '/master/dashboard', icon: '📊' },
-  { label: 'Заявки',  href: '/master/tickets',   icon: '🔧' },
-];
-const adminNav: NavItem[] = [
-  { label: 'Дашборд',  href: '/admin/dashboard',  icon: '📊' },
-  { label: 'Товары',   href: '/admin/products',   icon: '📦' },
-  { label: 'Заказы',   href: '/admin/orders',     icon: '🛍️' },
-  { label: 'Заявки',   href: '/admin/tickets',    icon: '🔧' },
-  { label: 'Клиенты',  href: '/admin/users',      icon: '👥' },
-];
-
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { user } = useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [logout] = useLogoutMutation();
   const [open, setOpen] = useState(false);
 
+  const clientNav: NavItem[] = [
+    { label: t('admin.dashboard'), href: '/client/dashboard', icon: '🏠' },
+    { label: t('orders.title'),    href: '/client/orders',    icon: '📦' },
+    { label: t('repairs.title'),   href: '/client/repairs',   icon: '🔧' },
+    { label: t('cart.title'),      href: '/client/cart',      icon: '🛒' },
+  ];
+  const masterNav: NavItem[] = [
+    { label: t('master.title'),         href: '/master/dashboard', icon: '📊' },
+    { label: t('master.activeTickets'), href: '/master/tickets',   icon: '🔧' },
+  ];
+  const adminNav: NavItem[] = [
+    { label: t('admin.dashboard'),  href: '/admin/dashboard', icon: '📊' },
+    { label: t('admin.products'),   href: '/admin/products',  icon: '📦' },
+    { label: t('admin.orders'),     href: '/admin/orders',    icon: '🛍️' },
+    { label: t('admin.tickets'),    href: '/admin/tickets',   icon: '🔧' },
+    { label: t('admin.users'),      href: '/admin/users',     icon: '👥' },
+  ];
+
   const nav = user?.role === 'Admin' ? adminNav : user?.role === 'Master' ? masterNav : clientNav;
+  const settingsHref = user?.role === 'Admin' ? '/admin/settings' : user?.role === 'Master' ? '/master/settings' : '/client/settings';
 
   const handleLogout = async () => {
     try { await logout().unwrap(); } catch {}
@@ -56,15 +59,21 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </NavLink>
         ))}
       </nav>
-      <div className="border-t border-white/10 pt-4 mt-4">
-        <div className="mb-3 px-3">
-          <p className="text-xs text-white/40">Вы вошли как</p>
+      <div className="border-t border-white/10 pt-4 mt-4 space-y-1">
+        <NavLink to={settingsHref} onClick={() => setOpen(false)}
+          className={({ isActive }) =>
+            `flex items-center gap-2 rounded-btn px-3 py-2 text-sm transition
+            ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}>
+          <Settings size={15} /> {t('settings.title')}
+        </NavLink>
+        <div className="px-3 pt-2">
+          <p className="text-xs text-white/40">{t('common.updated')}</p>
           <p className="text-sm font-medium text-white truncate">{user?.firstName} {user?.lastName}</p>
           <p className="text-xs text-white/40">{user?.role}</p>
         </div>
         <button onClick={handleLogout}
           className="flex w-full items-center gap-2 rounded-btn px-3 py-2 text-sm text-white/60 hover:bg-white/5 hover:text-danger transition">
-          <LogOut size={16} /> Выйти
+          <LogOut size={16} /> {t('nav.logout')}
         </button>
       </div>
     </aside>
@@ -72,19 +81,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-bg">
-      {/* Desktop sidebar */}
       <div className="hidden lg:block"><Sidebar /></div>
-
-      {/* Mobile sidebar */}
       {open && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
           <div className="relative w-64 h-full"><Sidebar mobile /></div>
         </div>
       )}
-
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile header */}
         <div className="flex items-center gap-3 border-b border-border bg-surface px-4 py-3 lg:hidden">
           <button onClick={() => setOpen(true)} className="text-muted"><Menu size={22} /></button>
           <Logo />

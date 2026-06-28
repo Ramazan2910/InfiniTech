@@ -57,7 +57,7 @@ export function AdminOrdersPage() {
                 <tr key={o.id} className="hover:bg-bg transition">
                   <td className="px-4 py-3">
                     <button onClick={() => navigate(`/admin/orders/${o.id}`)} className="font-medium text-blue hover:underline">
-                      #{o.id.slice(0, 8)}
+                      {o.orderNumber || `#${o.id.slice(0, 8)}`}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-muted">{format.date(o.createdAt)}</td>

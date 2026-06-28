@@ -172,4 +172,34 @@ public class ProductService : IProductService
             .ToListAsync();
         return _mapper.Map<IEnumerable<CategoryDto>>(cats);
     }
+
+    public async Task<IEnumerable<ProductDto>> GetSimilarProductsAsync(Guid productId, int limit = 4)
+    {
+        var product = await _db.Products.Include(p => p.Category)
+            .FirstOrDefaultAsync(p => p.Id == productId)
+            ?? throw new NotFoundException($"Product {productId} not found.");
+
+        var similar = await _db.Products
+            .Include(p => p.Category)
+            .Where(p => p.Id != productId
+                     && p.CategoryId == product.CategoryId
+                     && p.Condition == product.Condition)
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(limit)
+            .ToListAsync();
+
+        if (similar.Count < limit)
+        {
+            var ids = similar.Select(p => p.Id).Append(productId).ToList();
+            var more = await _db.Products
+                .Include(p => p.Category)
+                .Where(p => !ids.Contains(p.Id) && p.CategoryId == product.CategoryId)
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(limit - similar.Count)
+                .ToListAsync();
+            similar.AddRange(more);
+        }
+
+        return _mapper.Map<IEnumerable<ProductDto>>(similar);
+    }
 }

@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<TicketComment> TicketComments => Set<TicketComment>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -160,6 +161,26 @@ public class AppDbContext : DbContext
                 v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
             e.Property(r => r.CreatedAt).HasConversion(
                 v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        });
+
+        // PasswordResetToken
+        modelBuilder.Entity<PasswordResetToken>(e =>
+        {
+            e.HasIndex(p => p.Token).IsUnique();
+            e.HasOne(p => p.User)
+                .WithMany(u => u.PasswordResetTokens)
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.Property(p => p.ExpiresAt).HasConversion(
+                v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+            e.Property(p => p.CreatedAt).HasConversion(
+                v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        });
+
+        // Order - unique index on OrderNumber
+        modelBuilder.Entity<Order>(e =>
+        {
+            e.HasIndex(o => o.OrderNumber).IsUnique();
         });
     }
 }
