@@ -18,3 +18,8 @@ dist/
 # Database
 *.mdf
 *.ldf
+
+# Frontend
+infinitech-client/node_modules/
+infinitech-client/dist/
+infinitech-client/.env
